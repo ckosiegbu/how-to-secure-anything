@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Visit Booker",
+    "slug": "visit-booker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2C3E50"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSContactsUsageDescription": "This app needs access to your contacts to select visitors."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2C3E50"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.visitbooker.app",
+      "permissions": [
+        "READ_CONTACTS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Visit Booker to access your contacts to select visitors."
+        }
+      ]
+    ]
+  }
+}
