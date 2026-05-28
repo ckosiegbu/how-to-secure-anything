@@ -36,6 +36,25 @@ key passed as the `accessToken` in the form `key_id:secret`.
 unit in `deploy/co.prism.prismtoken.plist`. Always terminate TLS:
 set `PRISMTOKEN_TLS_CERT` / `PRISMTOKEN_TLS_KEY`.
 
+## 3a. Smoke test (first end-to-end check)
+
+One command runs ping -> signin -> issueCreditToken -> verifyToken -> fetch:
+
+```bash
+# self-contained (in-process; no server, demo key) -- confirms the build works:
+prismtoken-smoke --inproc --ea 11
+
+# against a running server (the first real end-to-end test):
+prismtoken-smoke --host meter-vend.local --port 9090 \
+    --tls-ca /etc/prismtoken/ca.crt --api-key 'vend1:s3cret' \
+    --drn 60072700000000000 --ea 11 --sgc 123456 --krn 1 --ti 1 --amount 50
+```
+
+**Base-date gotcha:** the TID is a 24-bit minute count from the key's Base Date,
+so a `bdt=93` (1993) key can only represent dates up to ~2024. For current dates
+provision keys with `bdt=14` (2014) or `bdt=35` (2035), else issuance fails with
+"TID out of range". (The `--inproc` demo key uses `bdt=14`.)
+
 ## 4. Scaling (hundreds/sec)
 
 - **Virtual backend:** the pure-Python ciphers are CPU-bound (GIL), so set

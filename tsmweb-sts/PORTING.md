@@ -173,8 +173,13 @@ Total suite: 57 tests (17 pysts + 11 SM + 16 service + 13 serial), all passing.
   `deploy/co.prism.prismtoken.plist` (launchd), and `RUNBOOK.md` (install,
   provision, scale, hardware bring-up, backup, monitoring).
 
-**Build complete (software-only milestone).** Total suite: 64 tests
-(17 pysts + 11 SM + 16 service + 13 serial + 7 ops), all passing. Remaining work
+- `service/smoke.py` — dual-mode smoke client (`prismtoken-smoke`): `--inproc`
+  drives the handler directly (self-provisions a demo key); `--host ...` connects
+  to a running server via thriftpy2 (TLS + API-key/password). Runs the full
+  ping -> signin -> issueCreditToken -> verifyToken -> fetch flow in one command.
+
+**Build complete (software-only milestone).** Total suite: 67 tests
+(17 pysts + 11 SM + 16 service + 13 serial + 7 ops + 3 smoke), all passing. Remaining work
 is deployment-gated, not code: validate the serial wire path against a real
 Prism module (SM?DI/CQ first), supply the licensed STSA production STA tables for
 EA=7, load real vending keys, and (if ever in scope) manufacturing/DITK firmware.

@@ -18,6 +18,7 @@ all = ["thriftpy2>=0.4.20", "pyserial>=3.5"]
 [project.scripts]
 prismtoken-serve = "service.app:main"
 prismtoken-admin = "service.adminctl:main"
+prismtoken-smoke = "service.smoke:main"
 
 [tool.setuptools]
 packages = ["pysts", "sts_sm", "service"]
