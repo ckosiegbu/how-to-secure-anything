@@ -72,7 +72,7 @@ class VirtualHsm(SmBase):
         self.ks.consume_transaction()
         rnd = int.from_bytes(os.urandom(1), "big") & 0x0F
         amt = transfer_amount
-        if not pysts.is_currency(cls, subclass) and cls == 0:
+        if not pysts.is_currency(cls, subclass):
             amt = int(round(transfer_amount))
         res = pysts.vk_create_token(vk, sgc, pan18, krn, rec["kt"], rec["dkga"],
                                     rec["bdt"], ti, ea, cls, subclass, rnd, tid,

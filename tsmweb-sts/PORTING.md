@@ -124,9 +124,24 @@ are protected by the **Secure Enclave** (KEK wraps the keystore data key).
   transaction-counter (license) gate. EA=11 production-faithful; EA=7 on demo
   tables (`sta_mode`).
 
-**Next — Phase 2:** generate Python bindings from
-`extract/app/docs/PrismToken/prismtoken1-TokenApi.thrift`, implement `TokenApi`
-over `SmBase` (auth, persistence, `fetchTokenResult` idempotency, TID lists).
-**Phase 3:** `DcmSerialSm` (STS6 PTVD framing over `pyserial`) + a serial
+**Phase 2 — Thrift service: DONE** (`port/service/`, 16 tests passing). The
+`TokenApi` surface from the recovered IDL, implemented over `SmBase`:
+- `meter.py` — DRN/PAN (dual Luhn), IDRecord (35-digit) + Record2 parse/build,
+  expiry. `tid.py` — TID from `tokenTime`+flags (EXTERNAL_CLOCK / TID_ADJUST_BDT
+  / SPECIAL_RESERVED), `bdtAdjustTid`, and the per-meter TokenCancellation list
+  (monotonic TIDs, skips the 00:01 reserved minute).
+- `store.py` — sqlite3 DAL (users, API keys, TID lists, `fetchTokenResult`
+  result cache). `auth.py` — password sign-in -> bearer token, API keys,
+  per-call permission checks.
+- `handler.py` — transport-agnostic `TokenApiHandler` (ping, signIn, getStatus,
+  parseIdRecord, issueCredit/Mse/KeyChange, verify, fetch, ctsReset; auto-KCT on
+  `newConfig`). Class-1 meter-test and DITK methods are explicitly disabled
+  (engineering/manufacturing scope, not yet ported).
+- `thrift_server.py` — `thriftpy2` runtime IDL load + struct adapter (optional
+  dep; handler/tests run stdlib-only). `app.py` — wiring + server entrypoint.
+
+Total suite: 44 tests (17 pysts + 11 SM + 16 service), all passing.
+
+**Next — Phase 3:** `DcmSerialSm` (STS6 PTVD framing over `pyserial`) + a serial
 emulator for hardware-free integration tests. **Phase 4:** multi-process
-workers, derived-key cache, packaging, runbook.
+workers, derived-key cache, TLS, packaging, runbook.

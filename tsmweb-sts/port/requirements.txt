@@ -1,5 +1,8 @@
 pycryptodome>=3.20
 
+# Thrift transport for the PrismToken service (runtime IDL load, no codegen):
+thriftpy2>=0.4.20
+
 # Hardware (DCM) serial backend, added in the hardware-driver phase:
 # pyserial>=3.5
 
