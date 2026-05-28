@@ -28,8 +28,12 @@ def build_sm(backend="virtual", keystore_path=None, kek="plaintext", **kek_kwarg
         sm = sts_sm.VirtualHsm(ks)
         return sm
     if backend == "serial":
-        from sts_sm.dcm_serial import DcmSerialSm   # phase 3
-        return DcmSerialSm(os.environ["PRISMTOKEN_SERIAL_PORT"])
+        # Drive a real Prism module over a macOS serial device. The (sgc,krn)->
+        # register map is loaded from config/DB after construction via sm.register().
+        transport = sts_sm.SerialTransport(
+            os.environ["PRISMTOKEN_SERIAL_PORT"],
+            baudrate=int(os.environ.get("PRISMTOKEN_SERIAL_BAUD", "9600")))
+        return sts_sm.DcmSerialSm(transport)
     raise ValueError(f"unknown backend {backend!r}")
 
 

@@ -142,6 +142,25 @@ are protected by the **Secure Enclave** (KEK wraps the keystore data key).
 
 Total suite: 44 tests (17 pysts + 11 SM + 16 service), all passing.
 
-**Next — Phase 3:** `DcmSerialSm` (STS6 PTVD framing over `pyserial`) + a serial
-emulator for hardware-free integration tests. **Phase 4:** multi-process
-workers, derived-key cache, TLS, packaging, runbook.
+**Phase 3 — serial hardware backend: DONE** (`port/sts_sm/`, 13 tests passing).
+A pure-Python STS6 serial path (no native `libDcm`), ported byte-for-byte from
+`hsm-sts.tcl` / `sts6v-1.0.tm` / `Ptvd-1.0.tm`:
+- `ptvd.py` — PTVD field codec (`<T>value~`, types N/P/H/D).
+- `sts6_frame.py` — hook-bang framing (`XX?YY`+params+CRC, `XX!YYRR`+payload+CRC)
+  with **CRC-16/ARC** (poly 0x8005, distinct from the token's CCITT CRC; verified
+  against the 0xBB3D vector) and the STS6 status-code table.
+- `transport.py` — `SerialTransport` (pyserial, CR line-ending) + `LoopbackTransport`.
+- `emulator.py` — `SoftSm6Emulator`, an in-process module that speaks the wire
+  protocol via pysts, so the path is integration-testable without hardware.
+- `dcm_serial.py` — `DcmSerialSm(SmBase)` issuing SM?VC/VM/VK/VT/DI/CQ; host-side
+  amount encoding and (sgc,krn)->register map, exactly as the original ApiService.
+
+A token issued through the full serial path verifies under an independent
+`VirtualHsm` holding the same key (cross-check test) — proving the wire encoding.
+The service swaps `VirtualHsm`<->`DcmSerialSm` by config with zero handler changes.
+
+Total suite: 57 tests (17 pysts + 11 SM + 16 service + 13 serial), all passing.
+
+**Next — Phase 4:** multi-process workers + derived-key cache for the
+hundreds/sec target, TLS termination, config/secrets, packaging, and an
+operations runbook (key ceremony, backup, monitoring).

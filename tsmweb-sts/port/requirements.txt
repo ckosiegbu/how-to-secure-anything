@@ -3,8 +3,8 @@ pycryptodome>=3.20
 # Thrift transport for the PrismToken service (runtime IDL load, no codegen):
 thriftpy2>=0.4.20
 
-# Hardware (DCM) serial backend, added in the hardware-driver phase:
-# pyserial>=3.5
+# Hardware (DCM) serial backend -- drives a Prism module over a macOS serial port:
+pyserial>=3.5
 
 # macOS Secure Enclave KEK provider for the virtual HSM (Mac only):
 # pyobjc-framework-Security>=10
