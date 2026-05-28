@@ -161,6 +161,20 @@ The service swaps `VirtualHsm`<->`DcmSerialSm` by config with zero handler chang
 
 Total suite: 57 tests (17 pysts + 11 SM + 16 service + 13 serial), all passing.
 
-**Next — Phase 4:** multi-process workers + derived-key cache for the
-hundreds/sec target, TLS termination, config/secrets, packaging, and an
-operations runbook (key ceremony, backup, monitoring).
+**Phase 4 — scale & ops: DONE** (`port/`, 7 tests passing):
+- `sts_sm/cache.py` + `virtual_hsm.py` — DKGA derivation memoised in a bounded
+  LRU (the main throughput lever); per-process metrics surfaced via `getStatus`.
+- `service/pool.py` — `SO_REUSEPORT` prefork (`serve_forked`) so the CPU-bound
+  ciphers scale across cores; per-connection TLS. Serial backend runs 1 worker
+  per module; virtual backend scales freely.
+- `service/config.py` — env-driven typed `Config`. `service/adminctl.py` —
+  provisioning CLI (users, API keys, vending keys, transaction license).
+- `pyproject.toml` (console scripts `prismtoken-serve`/`prismtoken-admin`),
+  `deploy/co.prism.prismtoken.plist` (launchd), and `RUNBOOK.md` (install,
+  provision, scale, hardware bring-up, backup, monitoring).
+
+**Build complete (software-only milestone).** Total suite: 64 tests
+(17 pysts + 11 SM + 16 service + 13 serial + 7 ops), all passing. Remaining work
+is deployment-gated, not code: validate the serial wire path against a real
+Prism module (SM?DI/CQ first), supply the licensed STSA production STA tables for
+EA=7, load real vending keys, and (if ever in scope) manufacturing/DITK firmware.

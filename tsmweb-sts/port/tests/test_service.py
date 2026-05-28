@@ -80,7 +80,11 @@ def test_tid_special_reserved():
 # ---- handler end-to-end ----------------------------------------------------
 
 def _app():
-    handler, sm, store, auth = build_app(seed_admin=("local", "admin", "secret"))
+    import tempfile, os as _os
+    from service.config import Config
+    cfg = Config(keystore_path=_os.path.join(tempfile.mkdtemp(), "ks.json"),
+                 kek="plaintext", db_path=":memory:")
+    handler, sm, store, auth = build_app(cfg, seed_admin=("local", "admin", "secret"))
     sm.enable_vending(10000)
     sm.load_vending_key(SGC, 1, VK8, ea=7, dkga=2)
     return handler, sm, store

@@ -1,47 +1,48 @@
 """Application wiring: build the SM backend, store, auth and handler; run server.
 
-Usage (Mac Mini deployment):
-    PRISMTOKEN_BACKEND=virtual PRISMTOKEN_KEK=auto \
+Production (Mac Mini), virtual HSM, 4 workers, TLS:
+    PRISMTOKEN_BACKEND=virtual PRISMTOKEN_KEK=auto PRISMTOKEN_WORKERS=4 \
     PRISMTOKEN_KEYSTORE=/var/lib/prismtoken/keystore.json \
-    python3 -m service.app --host 0.0.0.0 --port 9090
+    PRISMTOKEN_DB=/var/lib/prismtoken/prismtoken.db \
+    PRISMTOKEN_TLS_CERT=/etc/prismtoken/tls.crt PRISMTOKEN_TLS_KEY=/etc/prismtoken/tls.key \
+    python3 -m service.app
 
-The default (no env) builds an in-memory virtual HSM with a dev plaintext
-keystore and a seeded admin -- for local testing only.
+Provision users / API keys / vending keys first with `python3 -m service.adminctl`.
 """
 
 from __future__ import annotations
-import argparse
-import os
-import tempfile
 
 import sts_sm
 from .store import Store
 from .auth import Authenticator
 from .handler import TokenApiHandler
+from .config import Config
 
 
-def build_sm(backend="virtual", keystore_path=None, kek="plaintext", **kek_kwargs):
-    if backend == "virtual":
-        path = keystore_path or os.path.join(tempfile.mkdtemp(), "keystore.json")
-        ks = sts_sm.Keystore(path, sts_sm.make_kek(kek, **kek_kwargs))
+def build_sm(cfg: Config, kek_kwargs=None):
+    if cfg.backend == "virtual":
+        ks = sts_sm.Keystore(cfg.keystore_path, sts_sm.make_kek(cfg.kek, **(kek_kwargs or {})))
         ks.load_or_create()
-        sm = sts_sm.VirtualHsm(ks)
+        return sts_sm.VirtualHsm(ks, sta_mode=cfg.sta_mode, dk_cache_size=cfg.dk_cache_size)
+    if cfg.backend == "serial":
+        transport = sts_sm.SerialTransport(cfg.serial_port, baudrate=cfg.serial_baud)
+        sm = sts_sm.DcmSerialSm(transport)
+        _load_serial_registers(sm, cfg)
         return sm
-    if backend == "serial":
-        # Drive a real Prism module over a macOS serial device. The (sgc,krn)->
-        # register map is loaded from config/DB after construction via sm.register().
-        transport = sts_sm.SerialTransport(
-            os.environ["PRISMTOKEN_SERIAL_PORT"],
-            baudrate=int(os.environ.get("PRISMTOKEN_SERIAL_BAUD", "9600")))
-        return sts_sm.DcmSerialSm(transport)
-    raise ValueError(f"unknown backend {backend!r}")
+    raise ValueError(f"unknown backend {cfg.backend!r}")
 
 
-def build_app(backend="virtual", keystore_path=None, kek="plaintext",
-              db_path=":memory:", seed_admin=("local", "admin", "admin"),
-              **kek_kwargs):
-    sm = build_sm(backend, keystore_path, kek, **kek_kwargs)
-    store = Store(db_path)
+def _load_serial_registers(sm, cfg):
+    """Hook: populate the (sgc,krn)->HSM-register map from the vending DB.
+    The secret keys live in the module; only the register index is host-side."""
+    # Implemented by the deployment's provisioning (adminctl serial-register).
+    pass
+
+
+def build_app(cfg: Config = None, seed_admin=None, kek_kwargs=None):
+    cfg = cfg or Config()
+    sm = build_sm(cfg, kek_kwargs)
+    store = Store(cfg.db_path)
     if seed_admin:
         realm, user, pw = seed_admin
         store.add_user(realm, user, pw, ["*"])
@@ -50,22 +51,27 @@ def build_app(backend="virtual", keystore_path=None, kek="plaintext",
     return handler, sm, store, auth
 
 
+def make_adapter_factory(cfg: Config):
+    """Returns build_adapter(mod) used by pool.serve_forked (runs in each worker)."""
+    kek_kwargs = cfg.kek_kwargs()
+
+    def build_adapter(mod):
+        from .thrift_server import ThriftAdapter
+        handler, _, _, _ = build_app(cfg, seed_admin=None, kek_kwargs=kek_kwargs)
+        return ThriftAdapter(handler, mod)
+
+    return build_adapter
+
+
 def main(argv=None):
-    p = argparse.ArgumentParser(description="PrismToken Thrift service")
-    p.add_argument("--host", default=os.environ.get("PRISMTOKEN_HOST", "0.0.0.0"))
-    p.add_argument("--port", type=int, default=int(os.environ.get("PRISMTOKEN_PORT", "9090")))
-    args = p.parse_args(argv)
-
-    backend = os.environ.get("PRISMTOKEN_BACKEND", "virtual")
-    handler, sm, store, auth = build_app(
-        backend=backend,
-        keystore_path=os.environ.get("PRISMTOKEN_KEYSTORE"),
-        kek=os.environ.get("PRISMTOKEN_KEK", "plaintext"),
-        db_path=os.environ.get("PRISMTOKEN_DB", ":memory:"))
-
-    from .thrift_server import make_thrift_server
-    print(f"PrismToken serving Thrift on {args.host}:{args.port} (backend={backend})")
-    make_thrift_server(handler, args.host, args.port).serve()
+    cfg = Config.from_env()
+    from .pool import serve_forked
+    tls = " +TLS" if cfg.tls_certfile else ""
+    print(f"PrismToken serving on {cfg.host}:{cfg.port} "
+          f"(backend={cfg.backend}, workers={cfg.workers}{tls})")
+    serve_forked(make_adapter_factory(cfg), cfg.host, cfg.port, cfg.idl_path,
+                 workers=cfg.workers, tls_certfile=cfg.tls_certfile,
+                 tls_keyfile=cfg.tls_keyfile)
 
 
 if __name__ == "__main__":

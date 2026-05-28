@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prismtoken"
+version = "0.4.0"
+description = "STS prepaid-token vending: pysts engine, virtual + serial HSM, PrismToken Thrift service"
+requires-python = ">=3.10"
+dependencies = ["pycryptodome>=3.20"]
+
+[project.optional-dependencies]
+service = ["thriftpy2>=0.4.20"]
+serial = ["pyserial>=3.5"]
+macos-enclave = ["pyobjc-framework-Security>=10"]
+all = ["thriftpy2>=0.4.20", "pyserial>=3.5"]
+
+[project.scripts]
+prismtoken-serve = "service.app:main"
+prismtoken-admin = "service.adminctl:main"
+
+[tool.setuptools]
+packages = ["pysts", "sts_sm", "service"]
+
+[tool.setuptools.package-data]
+service = ["prismtoken1-TokenApi.thrift"]

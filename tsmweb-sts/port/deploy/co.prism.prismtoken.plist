@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- macOS launchd service for the PrismToken vending server (Mac Mini).
+     Install: sudo cp deploy/co.prism.prismtoken.plist /Library/LaunchDaemons/
+              sudo launchctl load /Library/LaunchDaemons/co.prism.prismtoken.plist
+     Provision keys/users first with prismtoken-admin (see RUNBOOK.md). -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>          <string>co.prism.prismtoken</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/prismtoken-serve</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PRISMTOKEN_BACKEND</key>  <string>virtual</string>
+        <key>PRISMTOKEN_KEK</key>      <string>auto</string>
+        <key>PRISMTOKEN_WORKERS</key>  <string>4</string>
+        <key>PRISMTOKEN_HOST</key>     <string>0.0.0.0</string>
+        <key>PRISMTOKEN_PORT</key>     <string>9090</string>
+        <key>PRISMTOKEN_KEYSTORE</key> <string>/var/lib/prismtoken/keystore.json</string>
+        <key>PRISMTOKEN_DB</key>       <string>/var/lib/prismtoken/prismtoken.db</string>
+        <key>PRISMTOKEN_TLS_CERT</key> <string>/etc/prismtoken/tls.crt</string>
+        <key>PRISMTOKEN_TLS_KEY</key>  <string>/etc/prismtoken/tls.key</string>
+    </dict>
+    <key>RunAtLoad</key>      <true/>
+    <key>KeepAlive</key>      <true/>
+    <key>StandardOutPath</key>   <string>/var/log/prismtoken.out.log</string>
+    <key>StandardErrorPath</key> <string>/var/log/prismtoken.err.log</string>
+</dict>
+</plist>
