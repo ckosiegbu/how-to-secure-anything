@@ -1,1 +1,4 @@
 pycryptodome>=3.20
+
+# optional, for running the test suite with pytest:
+# pytest>=7

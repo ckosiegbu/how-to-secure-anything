@@ -78,8 +78,8 @@ port replaces a lot of bespoke code with framework features:
 call `pysts`; the SM backend is selectable (software HLSM vs hardware bridge).
 
 ### Phased plan (suggested)
-1. **`pysts` library** — finish engine (DKGA01/02/04 ✓, STA ✓; add MISTY1,
-   currency tokens, KCT, transfer-amount/tariff) + unit tests. *(small)*
+1. **`pysts` library** — engine core. **DONE** (see Status below): DKGA01/02/04,
+   STA (demo), MISTY1, 16-bit + currency amounts, KCT, tariff, tests.
 2. **Data model** — DocTypes/models from DEEP-DIVE §5, with migrations. *(small)*
 3. **Token-issue + verify** workflow end-to-end (software SM). *(medium)*
 4. **Key management** — KMC pubkeys, VK load req/KLF, load/delete VK. *(medium)*
@@ -91,7 +91,19 @@ call `pysts`; the SM backend is selectable (software HLSM vs hardware bridge).
 Steps 1–6 are a realistic first milestone (a working software-only vending
 server). 7–8 depend on hardware access and STSA licensing.
 
-## Status in this repo
-- `port/sts_engine.py` — runnable engine (step 1 core), demo tables, passing
-  round-trip self-test. `python3 port/sts_engine.py`.
-- `port/requirements.txt` — `pycryptodome`.
+## Status in this repo — step 1 complete
+The `pysts` package (`port/pysts/`) implements the full token engine with a
+17-test suite (all passing), including the MISTY1 RFC 2994 vector:
+
+- `pysts/dkga.py` — DKGA01/02/04 + KCVs
+- `pysts/sta.py` — STA cipher EA=07 (DEMO tables; production withheld, NDA)
+- `pysts/misty1.py` — MISTY1 EA=11 (public, production-faithful)
+- `pysts/codec.py` — token codec, CRC, transfer-amount + currency, KCT
+- `pysts/tariff.py` — `convert_units` / `scale_units`
+- `pysts/engine.py` — `vk_create_token` / `vk_verify_token` / `vk_create_key_change_tokens`
+
+Run: `pip install -r port/requirements.txt && python3 port/demo.py` and
+`python3 port/tests/test_pysts.py`. See `port/README.md`.
+
+Next up (step 2+): the data model and a token-issue workflow on top of `pysts`,
+as either a Frappe v13 app or a FastAPI service.

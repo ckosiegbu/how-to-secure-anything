@@ -1,1 +1,3 @@
 *.swp
+tsmweb-sts/port/**/__pycache__/
+*.pyc
