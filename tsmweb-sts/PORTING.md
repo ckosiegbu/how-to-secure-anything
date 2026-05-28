@@ -105,5 +105,28 @@ The `pysts` package (`port/pysts/`) implements the full token engine with a
 Run: `pip install -r port/requirements.txt && python3 port/demo.py` and
 `python3 port/tests/test_pysts.py`. See `port/README.md`.
 
-Next up (step 2+): the data model and a token-issue workflow on top of `pysts`,
-as either a Frappe v13 app or a FastAPI service.
+### High-traffic Thrift service + virtual HSM (in progress)
+Target: a high-throughput Python service exposing the **PrismToken Thrift API**
+and driving a **Prism module over macOS serial** (pure-Python STS6/DCM protocol,
+no native `libDcm`), plus an **in-process virtual HSM** as a drop-in SM backend.
+Architecture: the service depends only on `SmBase`; the backend is `VirtualHsm`
+or `DcmSerialSm` by config. Auth = TLS + per-client API key. Keys on Mac Minis
+are protected by the **Secure Enclave** (KEK wraps the keystore data key).
+
+**Phase 1 — SM layer: DONE** (`port/sts_sm/`, 11 tests passing):
+- `sm_base.py` — `SmBase` contract (ports the SmFacade method set: status,
+  list/fetch key registers, issue credit/MSE/key-change tokens, verify) +
+  `KeyRegister`/`SmStatus`/`IssuedToken`/`SmError` (STS6 status codes).
+- `keystore.py` — AES-256-GCM keystore; pluggable KEK providers:
+  `MacSecureEnclaveKek` (SE-wrapped, needs on-device validation),
+  `PassphraseKek` (scrypt, tested default), `PlaintextKek` (dev).
+- `virtual_hsm.py` — `VirtualHsm(SmBase)` over `pysts` + keystore, with a
+  transaction-counter (license) gate. EA=11 production-faithful; EA=7 on demo
+  tables (`sta_mode`).
+
+**Next — Phase 2:** generate Python bindings from
+`extract/app/docs/PrismToken/prismtoken1-TokenApi.thrift`, implement `TokenApi`
+over `SmBase` (auth, persistence, `fetchTokenResult` idempotency, TID lists).
+**Phase 3:** `DcmSerialSm` (STS6 PTVD framing over `pyserial`) + a serial
+emulator for hardware-free integration tests. **Phase 4:** multi-process
+workers, derived-key cache, packaging, runbook.

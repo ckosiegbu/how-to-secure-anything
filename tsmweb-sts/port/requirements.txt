@@ -1,4 +1,10 @@
 pycryptodome>=3.20
 
-# optional, for running the test suite with pytest:
+# Hardware (DCM) serial backend, added in the hardware-driver phase:
+# pyserial>=3.5
+
+# macOS Secure Enclave KEK provider for the virtual HSM (Mac only):
+# pyobjc-framework-Security>=10
+
+# optional, to run the test suites with pytest:
 # pytest>=7
